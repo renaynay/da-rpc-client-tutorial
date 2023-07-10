@@ -6,7 +6,10 @@ import (
 
 	// please reference the go.mod file in this repository in order to correctly import
 	// this package
+	"github.com/celestiaorg/celestia-app/pkg/appconsts"
 	"github.com/celestiaorg/celestia-node/api/rpc/client"
+	"github.com/celestiaorg/celestia-node/blob"
+	"github.com/cosmos/cosmos-sdk/types"
 )
 
 func main() {
@@ -36,6 +39,27 @@ func main() {
 		panic(err)
 	}
 	fmt.Printf("Shares avaialble for header at height %d", header.Height())
+
+	// pay for blob example
+
+	var celestiaNamespace = "0x42690c204d39600fddd3"
+	var blobData = []byte("hello world")
+
+	newNamespaceId, _ := ParseV0Namespace(celestiaNamespace)
+
+	singleBlob, _ := blob.NewBlob(appconsts.DefaultShareVersion, newNamespaceId, blobData)
+	blobArray := []*blob.Blob{singleBlob}
+
+	gasLimit := EstimateGas(blobArray...)
+	fee := int64(appconsts.DefaultMinGasPrice * float64(gasLimit))
+
+	// submit pay for blob transaction!
+	_, err = rpc.State.SubmitPayForBlob(ctx, types.NewInt(fee), gasLimit, blobArray)
+
+	if err != nil {
+		fmt.Printf("Pay for blob failed: %s", err.Error())
+		panic(err)
+	}
 
 	// close the client when you are finished :)
 	rpc.Close()
